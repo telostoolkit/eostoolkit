@@ -29,7 +29,15 @@ import withStyles from '@material-ui/core/styles/withStyles';
 import Header from 'components/Header/Header';
 import Footer from 'components/Footer/Footer';
 import Sidebar from 'components/Sidebar/Sidebar';
+
+// load the environment
+import NetworkClient from 'containers/NetworkClient';
+import OfflineClient from 'containers/OfflineClient';
+
+// state based presentation
 import Notification from 'containers/Notification/Loadable';
+import Summary from 'components/Summary/Loadable';
+import NetworkConnector from 'containers/NetworkConnector';
 
 import dashboardRoutes from 'routes/dashboard';
 import logo from 'assets/img/logo.png';
@@ -37,22 +45,6 @@ import logo from 'assets/img/logo.png';
 import appStyle from './dashboardStyle';
 
 import image from '../assets/img/bg.jpg';
-
-// import HomePage from 'containers/HomePage/Loadable';
-// import NotFoundPage from 'containers/NotFoundPage/Loadable';
-
-const switchRoutes = (
-  <Switch>
-    {dashboardRoutes.map(({ collapse, component, path, pathTo, redirect, views }) => {
-      if (redirect) return <Redirect from={path} to={pathTo} key={`route-redirect-${path}`} />;
-      if (collapse)
-        return views.map(({ component: viewComponent, path: viewPath }) => {
-          return <Route path={viewPath} component={viewComponent} key={`route-${viewPath}`} />;
-        });
-      return <Route path={path} component={component} key={`route-${path}`} />;
-    })}
-  </Switch>
-);
 
 let ps;
 
@@ -105,8 +97,40 @@ class Dashboard extends React.Component {
       [classes.mainPanelSidebarMini]: this.state.miniActive,
       [classes.mainPanelWithPerfectScrollbar]: navigator.platform.indexOf('Win') > -1,
     })}`;
+
+    const switchRoutes = (
+      // TODO: Go back to using render once fixed babel bullshit
+      <Switch>
+        {dashboardRoutes.map(({ collapse, component, path, pathTo, redirect, views }) => {
+          if (path === '/search') return <Route path="/search/:name?" component={component} key={`route-${path}`} />;
+          if (redirect) return <Redirect from={path} to={pathTo} key={`route-redirect-${path}`} />;
+          if (collapse)
+            return views.map(({ component: viewComponent, path: viewPath }) => {
+              return (
+                <Route
+                  path={viewPath}
+                  component={NetworkConnector}
+                  // render={() => <NetworkConnector renderComponent={viewComponent} />}
+                  key={`route-${viewPath}`}
+                />
+              );
+            });
+          return (
+            <Route
+              path={path}
+              component={NetworkConnector}
+              // render={() => <NetworkConnector renderComponent={component} />}
+              key={`route-${path}`}
+            />
+          );
+        })}
+      </Switch>
+    );
+
     return (
       <div className={classes.wrapper}>
+        <NetworkClient />
+        <OfflineClient />
         <Sidebar
           routes={dashboardRoutes}
           logoText={'EOSTOOLKIT.IO'}
@@ -128,10 +152,14 @@ class Dashboard extends React.Component {
             {...rest}
           />
           <Notification />
+
           {/* On the /maps/full-screen-maps route we want the map to be on full screen - this is not possible if the content and conatiner classes are present because they have some paddings which would make the map smaller */}
           {this.getRoute() ? (
             <div className={classes.content}>
-              <div className={classes.container}>{switchRoutes}</div>
+              <div className={classes.container}>
+                <Summary />
+                {switchRoutes}
+              </div>
             </div>
           ) : (
             <div className={classes.map}>{switchRoutes}</div>
@@ -142,9 +170,5 @@ class Dashboard extends React.Component {
     );
   }
 }
-
-Dashboard.propTypes = {
-  classes: PropTypes.object.isRequired,
-};
 
 export default withStyles(appStyle)(Dashboard);

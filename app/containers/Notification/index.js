@@ -12,7 +12,8 @@ import injectSaga from 'utils/injectSaga';
 import injectReducer from 'utils/injectReducer';
 import SweetAlert from 'react-bootstrap-sweetalert';
 import withStyles from '@material-ui/core/styles/withStyles';
-import VoteUs from 'containers/VoteUs/Loadable';
+import VoteUs from 'components/Features/VoteUs';
+import { makeSelectWriterEnabled } from 'containers/NetworkClient/selectors';
 
 import {
   makeSelectNotificationFailure,
@@ -29,8 +30,21 @@ import sweetAlertStyle from './sweetAlertStyle';
 // eslint-disable-next-line react/prefer-stateless-function
 export class Notification extends React.Component {
   render() {
-    const { loading, failure, success, message, closeAll } = this.props;
+    function replaceErrors(key, value) {
+      if (value instanceof Error) {
+        const error = {};
 
+        Object.getOwnPropertyNames(value).forEach(valueKey => {
+          error[valueKey] = value[valueKey];
+        });
+
+        return error;
+      }
+
+      return value;
+    }
+
+    const { loading, failure, success, message, closeAll, writeEnabled } = this.props;
     if (loading) {
       return (
         <SweetAlert
@@ -47,16 +61,25 @@ export class Notification extends React.Component {
       );
     }
     if (success) {
+      const txid = message && message.TransactionId;
+
       return (
         <SweetAlert
           success
-          style={{ display: 'block', marginTop: '-100px' }}
+          style={{ display: 'block', marginTop: '-200px' }}
           title="Success"
           onConfirm={() => closeAll()}
           confirmBtnText="Thanks"
-          // onCancel={() => closeAll()} TODO: Add vote button
           confirmBtnCssClass={`${this.props.classes.button} ${this.props.classes.success}`}>
-          <h6>{message ? `TxId: ${message}` : ''}</h6>
+            {txid ? (
+              <a href={`https://bloks.io/transaction/${txid}`} target="new">
+                <h6>{txid}</h6>
+              </a>
+            ) : (
+              <pre className={this.props.classes.preXYScrollable}>
+                {message ? `${JSON.stringify(message, null, 2)}` : ''}
+              </pre>
+            )}
           <p>Thank you for using EOSToolkit.io</p>
           <h6>Your votes support continued development of these tools</h6>
           <h5>
@@ -65,7 +88,25 @@ export class Notification extends React.Component {
         </SweetAlert>
       );
     }
-    if (failure) {
+    if (failure && writeEnabled) {
+      const error = typeof message === 'string' ? JSON.parse(message) : message;
+
+      return (
+        <SweetAlert
+          danger
+          style={{ display: 'block', marginTop: '-200px' }}
+          title="Failure"
+          onConfirm={() => closeAll()}
+          confirmBtnText="Close"
+          confirmBtnCssClass={`${this.props.classes.button} ${this.props.classes.danger}`}>
+          <h6>Transaction has failed</h6>
+          <pre className={this.props.classes.preXYScrollable}>
+            {message ? `Details:\n${JSON.stringify(error, replaceErrors, 2)}` : ''}
+          </pre>
+        </SweetAlert>
+      );
+    }
+    if (failure && !writeEnabled) {
       return (
         <SweetAlert
           danger
@@ -75,8 +116,12 @@ export class Notification extends React.Component {
           confirmBtnText="Close"
           // onCancel={() => closeAll()}
           confirmBtnCssClass={`${this.props.classes.button} ${this.props.classes.danger}`}>
-          <h6>Transaction has failed</h6>
-          <h6>{message ? `Details: ${JSON.stringify(message)}` : ''}</h6>
+          <h5>You must install and connect Scatter</h5>
+          <h5>
+            <a href={`https://get-scatter.com/`} target="new">
+              Get Scatter
+            </a>
+          </h5>
         </SweetAlert>
       );
     }
@@ -93,6 +138,7 @@ const mapStateToProps = createStructuredSelector({
   failure: makeSelectNotificationFailure(),
   loading: makeSelectNotificationLoading(),
   message: makeSelectNotificationMessage(),
+  writeEnabled: makeSelectWriterEnabled(),
 });
 
 function mapDispatchToProps(dispatch) {

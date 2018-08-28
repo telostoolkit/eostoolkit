@@ -1,20 +1,44 @@
 // Primary components
-import Home from 'containers/HomePage/Loadable';
-import CreateAccount from 'containers/CreateAccount/Loadable';
-import CreateProxy from 'containers/CreateProxy/Loadable';
-import SetProxy from 'containers/SetProxy/Loadable';
-import BuyRam from 'containers/BuyRam/Loadable';
-import SellRam from 'containers/SellRam/Loadable';
-import Delegate from 'containers/Delegate/Loadable';
-import Undelegate from 'containers/Undelegate/Loadable';
-import Transfer from 'containers/Transfer/Loadable';
-import Governance from 'containers/Governance/Loadable';
+import CreateAccount from 'components/Features/CreateAccountForm';
+import CreateProxy from 'components/Features/CreateProxyForm';
+import ResignProxy from 'components/Features/ResignProxyForm';
+import SetProxy from 'components/Features/SetProxyForm';
+import RamForm from 'components/Features/RamForm';
+import StakeForm from 'components/Features/StakeForm';
+import Refund from 'components/Features/RefundForm';
+import Transfer from 'components/Features/TransferForm';
+import SimplePermissions from 'components/Features/SimplePermissionsForm';
+import ComplexPermissions from 'components/Features/ComplexPermissionsForm';
+import LinkAuth from 'components/Features/LinkAuthForm';
+import ClaimRewards from 'components/Features/ClaimRewardsForm';
+import BidName from 'components/Features/BidNameForm';
+import Airgrab from 'components/Features/AirgrabForm';
+import Donate from 'components/Features/DonateForm';
+import VotingTable from 'containers/NetworkProducers';
+import ProxyTable from 'containers/ProxyInfo';
+
+// EOSIO FORUM
+import ForumStatus from 'components/Features/ForumForms/Status';
+import ForumPost from 'components/Features/ForumForms/Post';
+import ForumProposal from 'components/Features/ForumForms/Propose';
+import ForumVote from 'components/Features/ForumForms/Vote';
+
+// MULTISIG - OFFLINE SIGN
+import MultisigCreate from 'components/Features/Multisig/Create';
+import MultisigSign from 'components/Features/Multisig/Sign';
+import MultisigPush from 'components/Features/Multisig/Push';
+
+// containers
+import Network from 'containers/Network/Loadable';
 import SearchAccount from 'containers/SearchAccount/Loadable';
-import SimplePermissions from 'containers/SimplePermissions/Loadable';
-import ClaimRewards from 'containers/ClaimRewards/Loadable';
-import Refund from 'containers/Refund/Loadable';
+
+// Pages
+import GovernancePage from 'components/Pages/GovernancePage/Loadable';
+import FeaturesPage from 'components/Pages/FeaturesPage/Loadable';
+
 // @material-ui/icons
 import {
+  Dashboard,
   AccountBalance,
   Search,
   PersonAdd,
@@ -22,14 +46,38 @@ import {
   AssignmentTurnedIn,
   Payment,
   DeveloperBoard,
+  Forum,
+  Favorite,
+  CloudDownload,
+  Settings,
+  VpnKey,
 } from '@material-ui/icons';
 
 const dashRoutes = [
+  { hide: true, path: '/networks', name: 'Network', component: Network },
   {
     path: '/home',
+    name: 'Features',
+    icon: Dashboard,
+    component: FeaturesPage,
+  },
+  {
+    path: '/donate',
+    name: 'Donate',
+    icon: Favorite,
+    component: Donate,
+  },
+  {
+    path: '/governance',
     name: 'Governance',
     icon: AccountBalance,
-    component: Governance,
+    component: GovernancePage,
+  },
+  {
+    path: '/airgrab',
+    name: 'Airgrab Tokens',
+    icon: CloudDownload,
+    component: Airgrab,
   },
   {
     path: '/search',
@@ -38,14 +86,14 @@ const dashRoutes = [
     component: SearchAccount,
   },
   {
-    path: '/create',
+    path: '/account/create',
     name: 'Create Account',
     icon: PersonAdd,
     component: CreateAccount,
   },
   {
     path: '/transfer',
-    name: 'Transfer EOS',
+    name: 'Transfer Tokens',
     icon: Payment,
     component: Transfer,
   },
@@ -58,39 +106,39 @@ const dashRoutes = [
     views: [
       {
         path: '/account/delegate',
-        name: 'Delegate (Stake)',
-        mini: 'DG',
-        component: Delegate,
+        name: 'Manage Stake',
+        mini: 'MS',
+        component: StakeForm,
       },
       {
-        path: '/account/undelegate',
-        name: 'Undelegate (Unstake)',
-        mini: 'UN',
-        component: Undelegate,
-      },
-      {
-        path: '/account/buyram',
-        name: 'Buy Ram (EOS)',
-        mini: 'BR',
-        component: BuyRam,
-      },
-      {
-        path: '/account/sellram',
-        name: 'Sell Ram (bytes)',
-        mini: 'SR',
-        component: SellRam,
-      },
-      {
-        path: '/account/refund',
-        name: 'Refund',
-        mini: 'R',
-        component: Refund,
+        path: '/account/ram',
+        name: 'Manage RAM',
+        mini: 'MR',
+        component: RamForm,
       },
       {
         path: '/account/permissions',
         name: 'Manage Permissions',
         mini: 'P',
         component: SimplePermissions,
+      },
+      {
+        path: '/account/advanced',
+        name: 'Advanced Permissions',
+        mini: 'AP',
+        component: ComplexPermissions,
+      },
+      {
+        path: '/account/linkauth',
+        name: 'Link Auth',
+        mini: 'LA',
+        component: LinkAuth,
+      },
+      {
+        path: '/account/refund',
+        name: 'Refund Stake',
+        mini: 'RS',
+        component: Refund,
       },
     ],
   },
@@ -102,22 +150,100 @@ const dashRoutes = [
     icon: AssignmentTurnedIn,
     views: [
       {
-        path: '/vote/pick',
-        name: 'Vote',
-        mini: 'V',
-        component: Home,
+        path: '/vote/producers',
+        name: 'Vote Producers',
+        mini: 'VP',
+        component: VotingTable,
       },
       {
-        path: '/vote/beproxy',
-        name: 'Become Proxy',
-        mini: 'BP',
-        component: CreateProxy,
+        path: '/vote/proxies',
+        name: 'Proxy Information',
+        mini: 'PI',
+        component: ProxyTable,
       },
       {
         path: '/vote/setproxy',
         name: 'Set Proxy',
         mini: 'SP',
         component: SetProxy,
+      },
+      {
+        path: '/vote/createproxy',
+        name: 'Create Proxy',
+        mini: 'CP',
+        component: CreateProxy,
+      },
+      {
+        path: '/vote/resignproxy',
+        name: 'Resign Proxy',
+        mini: 'RP',
+        component: ResignProxy,
+      },
+    ],
+  },
+  {
+    collapse: true,
+    path: '/community',
+    name: 'Community Features',
+    state: 'openCommunity',
+    icon: Forum,
+    views: [
+      {
+        path: '/community/forum/status',
+        name: 'Forum Status',
+        mini: 'FS',
+        component: ForumStatus,
+      },
+      {
+        path: '/community/forum/post',
+        name: 'Forum Post',
+        mini: 'FP',
+        component: ForumPost,
+      },
+      {
+        path: '/community/forum/proposal',
+        name: 'Forum Proposal',
+        mini: 'Pr',
+        component: ForumProposal,
+      },
+      {
+        path: '/community/forum/vote',
+        name: 'Forum Vote',
+        mini: 'FV',
+        component: ForumVote,
+      },
+      {
+        path: '/community/bidname',
+        name: 'Premium Names',
+        mini: 'PN',
+        component: BidName,
+      },
+    ],
+  },
+  {
+    collapse: true,
+    path: '/multisig',
+    name: 'Multisig Transactions',
+    state: 'openMultisig',
+    icon: VpnKey,
+    views: [
+      {
+        path: '/multisig/create',
+        name: 'Create Transaction',
+        mini: 'CT',
+        component: MultisigCreate,
+      },
+      {
+        path: '/multisig/sign',
+        name: 'Sign Transaction',
+        mini: 'ST',
+        component: MultisigSign,
+      },
+      {
+        path: '/multisig/push',
+        name: 'Push Transaction',
+        mini: 'PT',
+        component: MultisigPush,
       },
     ],
   },
@@ -130,107 +256,14 @@ const dashRoutes = [
     views: [
       {
         path: '/block-producer/claim-rewards',
-        name: 'Claim Producer Rewards',
-        mini: 'C',
+        name: 'Claim Rewards',
+        mini: 'CR',
         component: ClaimRewards,
       },
     ],
   },
-
-  // {
-  //   collapse: true,
-  //   path: "-page",
-  //   name: "Pages",
-  //   state: "openPages",
-  //   icon: Image,
-  //   views: pages
-  // },
-  // {
-  //   collapse: true,
-  //   path: "/forms",
-  //   name: "Forms",
-  //   state: "openForms",
-  //   icon: ContentPaste,
-  //   views: [
-  //     {
-  //       path: "/forms/regular-forms",
-  //       name: "Regular Forms",
-  //       mini: "RF",
-  //       component: RegularForms
-  //     },
-  //     {
-  //       path: "/forms/extended-forms",
-  //       name: "Extended Forms",
-  //       mini: "EF",
-  //       component: ExtendedForms
-  //     },
-  //     {
-  //       path: "/forms/validation-forms",
-  //       name: "Validation Forms",
-  //       mini: "VF",
-  //       component: ValidationForms
-  //     },
-  //     { path: "/forms/wizard", name: "Wizard", mini: "W", component: Wizard }
-  //   ]
-  // },
-  // {
-  //   collapse: true,
-  //   path: "/tables",
-  //   name: "Tables",
-  //   state: "openTables",
-  //   icon: GridOn,
-  //   views: [
-  //     {
-  //       path: "/tables/regular-tables",
-  //       name: "Regular Tables",
-  //       mini: "RT",
-  //       component: RegularTables
-  //     },
-  //     {
-  //       path: "/tables/extended-tables",
-  //       name: "Extended Tables",
-  //       mini: "ET",
-  //       component: ExtendedTables
-  //     },
-  //     {
-  //       path: "/tables/react-tables",
-  //       name: "React Tables",
-  //       mini: "RT",
-  //       component: ReactTables
-  //     }
-  //   ]
-  // },
-  // {
-  //   collapse: true,
-  //   path: "/maps",
-  //   name: "Maps",
-  //   state: "openMaps",
-  //   icon: Place,
-  //   views: [
-  //     {
-  //       path: "/maps/google-maps",
-  //       name: "Google Maps",
-  //       mini: "GM",
-  //       component: GoogleMaps
-  //     },
-  //     {
-  //       path: "/maps/full-screen-maps",
-  //       name: "Full Screen Map",
-  //       mini: "FSM",
-  //       component: FullScreenMap
-  //     },
-  //     {
-  //       path: "/maps/vector-maps",
-  //       name: "Vector Map",
-  //       mini: "VM",
-  //       component: VectorMap
-  //     }
-  //   ]
-  // },
-  // { path: "/widgets", name: "Widgets", icon: WidgetsIcon, component: Widgets },
-  // { path: "/charts", name: "Charts", icon: Timeline, component: Charts },
-  // { path: "/calendar", name: "Calendar", icon: DateRange, component: Calendar },
-  { redirect: true, path: '/account/buybytes', pathTo: '/account/buyram', name: 'Buy Ram (bytes)' },
   { redirect: true, path: '/', pathTo: '/home', name: 'Home' },
+  { redirect: true, path: '/account/buyram', pathTo: '/account/ram', name: 'Buy RAM' },
+  { redirect: true, path: '/account/sellram', pathTo: '/account/ram', name: 'Sell RAM' },
 ];
 export default dashRoutes;

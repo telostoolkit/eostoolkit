@@ -11,7 +11,7 @@ import { compose } from 'redux';
 import Account from 'components/Account';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import GridContainer from 'components/Grid/GridContainer';
-import SearchAccountForm from 'components/SearchAccountForm';
+import SearchAccountForm from 'components/Features/SearchAccountForm';
 
 import injectSaga from 'utils/injectSaga';
 import injectReducer from 'utils/injectReducer';
@@ -27,19 +27,22 @@ function LoadingSpinner(props) {
   return '';
 }
 
-const SearchAccount = props => {
-  // const { handleAccountName, handlePublicKey } = this.props;
-  return (
-    <div>
-      <SearchAccountForm {...props} />
-      <LoadingSpinner {...props} />
-      <GridContainer>
-        {props.accounts.map(account => {
-          return <Account account={account} />;
-        })}
-      </GridContainer>
-    </div>
-  );
+// eslint-disable-next-line react/prefer-stateless-function
+export class SearchAccount extends React.Component {
+  render() {
+    return (
+      <div>
+        <SearchAccountForm {...this.props} />
+        <LoadingSpinner {...this.props} />
+        <GridContainer>
+          {this.props.accounts.map(account => {
+            if (!account) return <Account account={account} key="invalid" />;
+            return <Account account={account} key={account.account_name} />;
+          })}
+        </GridContainer>
+      </div>
+    );
+  }
 }
 
 const mapStateToProps = createStructuredSelector({

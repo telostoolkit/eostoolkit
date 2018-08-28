@@ -1,35 +1,69 @@
-import Eos from 'eosjs';
-import eosConfig from 'eosConfig';
-import { takeLatest, call, put, select, all } from 'redux-saga/effects';
+import { makeSelectTokens as selectTokens, makeSelectReader } from 'containers/NetworkClient/selectors';
+import { takeLatest, call, put, select, all, fork, join } from 'redux-saga/effects';
 import { makeSelectSearchName, makeSelectSearchPubkey } from './selectors';
 import { LOOKUP_ACCOUNT, LOOKUP_PUBKEY } from './constants';
 import { lookupLoading, lookupLoaded } from './actions';
 
-function* getAccountDetail(eosClient, name) {
-  const account = yield eosClient.getAccount(name);
-  const currency = yield eosClient.getCurrencyBalance('eosio.token', name);
-  account.currency = currency;
-  return account;
+function* getCurrency(token, name) {
+  const networkReader = yield select(makeSelectReader());
+  try {
+    const currency = yield networkReader.getCurrencyBalance(token, name);
+    const currencies = currency.map(c => {
+      return {
+        account: token,
+        balance: c,
+      };
+    });
+    return currencies;
+  } catch (err) {
+    console.error('An EOSToolkit error occured - see details below:');
+    console.error(err);
+    return [];
+  }
+}
+
+function* getAccountDetail(name) {
+  try {
+    const networkReader = yield select(makeSelectReader());
+    const eosTokens = yield select(selectTokens());
+    const account = yield networkReader.getAccount(name);
+    const tokens = yield all(
+      eosTokens.map(token => {
+        return fork(getCurrency, token.account, name);
+      })
+    );
+    const currencies = yield join(...tokens);
+    const balances = currencies.reduce((a, b) => a.concat(b), []);
+    return {
+      ...account,
+      balances,
+    };
+  } catch (err) {
+    console.error('An EOSToolkit error occured - see details below:');
+    console.error(err);
+    return {};
+  }
 }
 
 //
 // Get the EOS all accounts by public key
 //
 function* performSearchPubkey() {
-  const eosClient = yield Eos(eosConfig);
+  const networkReader = yield select(makeSelectReader());
   const publicKey = yield select(makeSelectSearchPubkey());
-  const accounts = [];
   yield put(lookupLoading());
   try {
-    const res = yield eosClient.getKeyAccounts(publicKey);
-    // TODO: fix the following rule quickly
-    // eslint-disable-next-line no-restricted-syntax
-    for (const accountName of res.account_names) {
-      const detail = yield call(getAccountDetail, eosClient, accountName);
-      accounts.push(detail);
-    }
+    const res = yield networkReader.getKeyAccounts(publicKey);
+    const details = yield all(
+      res.account_names.map(accountName => {
+        return fork(getAccountDetail, accountName);
+      })
+    );
+    const accounts = yield join(...details);
     yield put(lookupLoaded(accounts));
   } catch (err) {
+    console.error('An EOSToolkit error occured - see details below:');
+    console.error(err);
     yield put(lookupLoaded([]));
   }
 }
@@ -42,13 +76,14 @@ function* watchSeachPubkey() {
 // Get the EOS single account
 //
 function* performSearchAccount() {
-  const eosClient = yield Eos(eosConfig);
   const accountName = yield select(makeSelectSearchName());
   yield put(lookupLoading());
   try {
-    const account = yield call(getAccountDetail, eosClient, accountName);
+    const account = yield call(getAccountDetail, accountName);
     yield put(lookupLoaded([account]));
   } catch (err) {
+    console.error('An EOSToolkit error occured - see details below:');
+    console.error(err);
     yield put(lookupLoaded([]));
   }
 }

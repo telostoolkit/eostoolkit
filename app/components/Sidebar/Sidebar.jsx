@@ -3,6 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 // javascript plugin used to create scrollbars on windows
 import { NavLink } from 'react-router-dom';
+import { createStructuredSelector } from 'reselect';
 import cx from 'classnames';
 
 // @material-ui/core components
@@ -14,11 +15,13 @@ import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import Hidden from '@material-ui/core/Hidden';
 import Collapse from '@material-ui/core/Collapse';
-import { AddBox, ExitToApp } from '@material-ui/icons';
+import { AddBox, ExitToApp, SettingsApplications, Autorenew } from '@material-ui/icons';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
-import { connectAccount, removeAccount } from 'containers/Scatter/actions';
-import Scatter from 'containers/Scatter/Loadable';
+import { makeSelectOffline, makeSelectIdentity } from 'containers/NetworkClient/selectors';
+import { setIdentity, disableWriter, toggleOffline } from 'containers/NetworkClient/actions';
+import NetworkIdentity from 'components/NetworkStatus/Identity';
+import NetworkStatus from 'components/NetworkStatus/Status';
 
 // core components
 import HeaderLinks from 'components/Header/HeaderLinks';
@@ -35,6 +38,9 @@ class Sidebar extends React.Component {
       openAvatar: false,
       openAccount: this.activeRoute('/account'),
       openVote: this.activeRoute('/vote'),
+      openCommunity: this.activeRoute('/community'),
+      openMultisig: this.activeRoute('/multisig'),
+      openBlockProducer: this.activeRoute('/block-producer'),
       miniActive: true,
     };
     this.activeRoute.bind(this);
@@ -82,49 +88,65 @@ class Sidebar extends React.Component {
               className={`${classes.itemLink} ${classes.userCollapseButton}`}
               onClick={() => this.openCollapse('openAvatar')}>
               <ListItemText
-                primary={<Scatter />}
-                secondary={
-                  <b className={`${caret} ${classes.userCaret} ${this.state.openAvatar ? classes.caretActive : ''}`} />
-                }
+                primary={<NetworkIdentity />}
                 disableTypography
                 className={`${itemText} ${classes.userItemText}`}
               />
             </NavLink>
-            <Collapse in={this.state.openAvatar} unmountOnExit>
-              <List className={`${classes.list} ${classes.collapseList}`}>
-                <ListItem className={classes.collapseItem} onClick={this.props.onScatterConnect}>
-                  <NavLink to="#" className={`${classes.itemLink} ${classes.userCollapseLinks}`}>
-                    <ListItemIcon className={classes.itemIconMini}>
-                      <AddBox />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Connect Account" // TODO: Make this international
-                      disableTypography
-                      className={collapseItemText}
-                    />
-                  </NavLink>
-                </ListItem>
-                <ListItem className={classes.collapseItem} onClick={this.props.onScatterRemove}>
-                  <NavLink to="#" className={`${classes.itemLink} ${classes.userCollapseLinks}`}>
-                    <ListItemIcon className={classes.itemIconMini}>
-                      <ExitToApp />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Sign Out" // TODO: Make this international
-                      disableTypography
-                      className={collapseItemText}
-                    />
-                  </NavLink>
-                </ListItem>
-              </List>
-            </Collapse>
           </ListItem>
+          <ListItem className={classes.item} onClick={this.props.identity ? this.props.onLogout : this.props.onLogin}>
+            <NavLink to="#" className={`${classes.itemLink}`}>
+              <ListItemIcon className={classes.itemIconMini}>
+                {this.props.identity ? (<ExitToApp />) : (<AddBox />)}
+              </ListItemIcon>
+              <ListItemText
+                primary={this.props.identity ? "Detach Account" : "Attach Account"} // TODO: Make this international
+                disableTypography
+                className={collapseItemText}
+              />
+            </NavLink>
+          </ListItem>
+          <ListItem className={classes.item}>
+            <NavLink to="/networks" className={`${classes.itemLink}`}>
+              <ListItemIcon className={classes.itemIconMini}>
+                <SettingsApplications />
+              </ListItemIcon>
+              <ListItemText
+                primary="Change Network" // TODO: Make this international
+                disableTypography
+                className={collapseItemText}
+              />
+            </NavLink>
+          </ListItem>
+          <ListItem className={classes.item} onClick={this.props.toggleOffline}>
+            <NavLink to="#" className={`${classes.itemLink}`}>
+              <ListItemIcon className={classes.itemIconMini}>
+                <Autorenew />
+              </ListItemIcon>
+              <ListItemText
+                primary={this.props.offlineMode ? "Multisig Mode" : "Singlesig Mode"} // TODO: Make this international
+                disableTypography
+                className={collapseItemText}
+              />
+            </NavLink>
+          </ListItem>
+
         </List>
       </div>
+    );
+    const status = (
+      <List className={classes.list}>
+        <ListItem className={classes.item}>
+          <ListItemText primary={<NetworkStatus />} className={classes.statusText} disableTypography />
+        </ListItem>
+      </List>
     );
     const links = (
       <List className={classes.list}>
         {routes.map(prop => {
+          if (prop.hide) {
+            return null;
+          }
           if (prop.redirect) {
             return null;
           }
@@ -259,6 +281,7 @@ class Sidebar extends React.Component {
             <SidebarWrapper
               className={sidebarWrapper}
               user={user}
+              status={status}
               headerLinks={<HeaderLinks rtlActive={rtlActive} />}
               links={links}
             />
@@ -278,7 +301,7 @@ class Sidebar extends React.Component {
               paper: `${drawerPaper} ${classes[`${bgColor}Background`]}`,
             }}>
             {brand}
-            <SidebarWrapper className={sidebarWrapper} user={user} links={links} />
+            <SidebarWrapper className={sidebarWrapper} user={user} links={links} status={status} />
             {image !== undefined ? (
               <div className={classes.background} style={{ backgroundImage: `url(${image})` }} />
             ) : null}
@@ -304,17 +327,23 @@ Sidebar.propTypes = {
   routes: PropTypes.arrayOf(PropTypes.object),
 };
 
+const mapStateToProps = createStructuredSelector({
+  offlineMode: makeSelectOffline(),
+  identity: makeSelectIdentity(),
+});
+
 function mapDispatchToProps(dispatch) {
   return {
-    onScatterConnect: () => dispatch(connectAccount()),
-    onScatterRemove: () => dispatch(removeAccount()),
+    onLogin: () => dispatch(setIdentity()),
+    onLogout: () => dispatch(disableWriter()),
+    toggleOffline: () => dispatch(toggleOffline())
   };
 }
 
 export default compose(
   withStyles(sidebarStyle),
   connect(
-    null,
+    mapStateToProps,
     mapDispatchToProps
   )
 )(Sidebar);
